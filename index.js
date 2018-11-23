@@ -22,7 +22,7 @@ editor.addEventListener('keyup', (e) => {
       texts['text' + i] = text.substring(i * 8000, (i + 1) *8000);
     });
     error.style.display = text.length > 100000 ? 'block' : 'none';
-    chrome.storage.sync.set(texts, e => {
+    chrome.storage.sync.set(texts, () => {
       if (chrome.runtime.lastError) {
         alert("Check console for error")
         console.log(chrome.runtime.lastError)
