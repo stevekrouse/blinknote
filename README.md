@@ -2,6 +2,9 @@
 
 new tab chrome extension - fastest way to take a note that'll stick around
 
+* opens in miliseconds
+* works offline, but also saves data via the Chrome sync API so you data will be everywhere you're logged into Chrome
+
 ## Todos
 
 ### Required
