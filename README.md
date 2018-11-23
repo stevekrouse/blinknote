@@ -25,6 +25,7 @@ new tab chrome extension - fastest way to take a note that'll stick around
   * lists
   * links
   * HTML
+  * table of contents based on headers
 * history of edits / go back in time (how about a magical ctl-z that works even if you leave the page? eh but what about branches...?)
 
 ### Yak-shaving
