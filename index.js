@@ -8,6 +8,8 @@ chrome.storage.sync.get(null, items => {
   editor.innerHTML = text;
 })
 editor.addEventListener('keyup', (e) => { 
+  // change the font size, animated, of all lines beginning with # 
+  ([].slice.call(editor.querySelectorAll('*')).map(e => [e, e.innerText]).map(([e, text]) => [e, text.match(/^(#+)\s.*$/)]).filter(([e, m]) => m).map(([e, m]) => [e, m[1]]).forEach(([e,m]) => {e.style.transition = "font-size 0.5s cubic-bezier(0, 1.03, 1, 1) 0s"; e.style.fontSize = (30 - (3*m.length)) || 3}))
   clearTimeout(timeout);
   timeout = setTimeout(() => { 
     let text = editor.innerHTML; 
