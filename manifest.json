@@ -1,0 +1,10 @@
+  {
+    "name": "BlinkNote",
+    "version": "1.0",
+    "description": "fastest way to take a note that'll stick around",
+    "permissions": ["storage"],
+    "chrome_url_overrides" : {
+      "newtab": "index.html"
+    },
+    "manifest_version": 2
+  }
