@@ -10,6 +10,7 @@ new tab chrome extension - fastest way to take a note that'll stick around
 ### Required
 
 * make sure changes are saved before page is closed
+* haven't been able to get an accurate count of bytes... https://github.com/dtuit/chrome-storage-largeSync
 * find a way to update the page when the data is changed in another tab without screwing things up (there's an onChanged event)
 * favicons / icons
 * publish to chrome store
@@ -26,7 +27,7 @@ new tab chrome extension - fastest way to take a note that'll stick around
   * links
   * HTML
   * table of contents off to the side, based on headers like in Google Docs 
-* history of edits / go back in time (how about a magical ctl-z that works even if you leave the page? eh but what about branches...?)
+* history of edits / go back in time like google docs with diffs
 
 ### Yak-shaving
 
