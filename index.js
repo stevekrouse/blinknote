@@ -21,7 +21,8 @@ editor.addEventListener('keyup', (e) => {
     // https://developer.chrome.com/apps/storage#type-StorageArea
     var texts = {}
     splitKeys.forEach(i => {
-      texts['text' + i] = text.substring(i * 8000, (i + 1) *8000);
+      // temporarily set limit to 5000 because I can't get an accurate byte count
+      texts['text' + i] = text.substring(i * 5000, (i + 1) *5000);
     });
     error.style.display = text.length > 100000 ? 'block' : 'none';
     chrome.storage.sync.set(texts, () => {
