@@ -19,10 +19,10 @@ const storage = {
     splittedText = storage.splitText(text);
     chrome.storage.sync.set(splittedText, () => {
       if (chrome.runtime.lastError) {
-        setTitle('Error');
+        title.set('Error');
         console.log(chrome.runtime.lastError)
       } else {
-        setTitle('Saved');
+        title.set('Saved');
       }
     }); 
   },
@@ -53,12 +53,16 @@ const storage = {
   QUOTA_BYTES: 50000 // chrome.storage.sync.QUOTA_BYTES is 102,400
 }
 
-const setTitle = (title) => {
-  document.title = `${title} - BlinkNote`;
+const title =  {
+  // state: 'Saved', 'Saving', 'Error'
+  set: state => {
+    title.state = state; 
+    document.title = `${title.state} - BlinkNote`;  
+  },
 }
 
+
 const init = () => {
-  document.title = 'BlinkNote';
   editorElement = document.querySelector('#c');
   errorElement = document.querySelector("#error");
   
@@ -73,11 +77,14 @@ const init = () => {
   editorStyleChanges();
   editorElement.addEventListener('input', editorStyleChanges);
   
-  storage.getText().then(editor.setText)
+  storage.getText()
+    .then(editor.setText)
+    .then(() => title.set('Saved'))
+  
   
   // save changes
   editorElement.addEventListener('keyup', (e) => { 
-    setTitle('Saving'); 
+    title.set('Saving'); 
     clearTimeout(timeout);
     timeout = setTimeout(() => { 
       storage.setText(editor.getText())
@@ -89,10 +96,15 @@ const init = () => {
     if (namespace === 'sync') {
       if (editor.getText() !== await storage.getText()) {
         editor.setText(await storage.getText())
-        setTitle('Updated');
+        title.set('Saved');
       }
     }
   });
+  
+  // warns you about leaving before save
+  window.onbeforeunload = function() {
+    return title.state === 'Saved' ? null : true;
+  }
 }
 
 window.addEventListener('load', init);
