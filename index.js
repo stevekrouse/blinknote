@@ -1,77 +1,98 @@
-let splitKeys = [0,1,2,3,4,5,6,7,8,9,10,11,12];
-let editor;
-let error;
+let editorElement;
+let errorElement;
 let timeout; 
-let status;
 
-const init = () => {
-  document.title = 'BlinkNote';
-  editor = document.querySelector('#c');
-  error = document.querySelector("#error");
-  status = document.querySelector("#status");
-  chrome.storage.sync.get(null, items => {
-    displayText(items);
-  });
-  editor.addEventListener('keyup', (e) => { 
-    setTitle('Saving'); 
-    // increase font size of lines beginning in hashtag, animatedly
-    ([].slice.call(editor.querySelectorAll('*')).map(e => [e, e.innerText]).map(([e, text]) => [e, text.match(/^(#+)\s.*$/)]).filter(([e, m]) => m).map(([e, m]) => [e, m[1]]).forEach(([e,m]) => {e.style.transition = "font-size 0.5s cubic-bezier(0, 1.03, 1, 1) 0s"; e.style.fontSize = (30 - (3*m.length)) || 3}));
-    clearTimeout(timeout);
-    timeout = setTimeout(() => { 
-      let text = editor.innerHTML;
-      setText(text)
-    }, 500);
-  });
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync') {
-      let items = {};
-      const keys = Object.keys(changes);
-      let editorText = editor.innerHTML;
-      keys.forEach(key => {
-        let newValue = changes[key].newValue;
-        if (newValue !== editorText) {
-          items[key] = newValue;
-        }
-      });
-      if (Object.keys(items).length > 0) {
-        displayText(items);
-        setTitle('Updated');
-      }
-    }
-  });
+const utils = {
+  range: n => [...Array(n)].map((_, i) => i)
 }
 
-const setText = (text) => {
-  // Split up text into multiple keys because there's a 8000 char limit on keys
-  // https://developer.chrome.com/apps/storage#type-StorageArea
-  let texts = {};
-  splitKeys.forEach(i => {
-    // temporarily set limit to 5000 because I can't get an accurate byte count
-    texts['text' + i] = text.substring(i * 5000, (i + 1) * 5000);
-  });
-  error.style.display = text.length > 100000 ? 'block' : 'none';
-  chrome.storage.sync.set(texts, e => {
-    if (chrome.runtime.lastError) {
-      setTitle('Error');
-      console.log(chrome.runtime.lastError)
-    } else {
-      setTitle('Saved');
-    }
-  }); 
-};
-
-const displayText = (items) => {
-  // Rejoin text that we split up below
-  let text = splitKeys.map(i => items['text' + i]).filter(t => t).join("");
-  if (text != editor.innerHTML) {
-    editor.innerHTML = text;
+const editor = {
+  getText: () => editorElement.innerHTML,
+  
+  setText: text => {
+    editorElement.innerHTML = text;
   }
+}
+
+const storage = {
+  setText: text => {
+    splittedText = storage.splitText(text);
+    chrome.storage.sync.set(splittedText, () => {
+      if (chrome.runtime.lastError) {
+        setTitle('Error');
+        console.log(chrome.runtime.lastError)
+      } else {
+        setTitle('Saved');
+      }
+    }); 
+  },
+  
+  getText: () => 
+    new Promise(function(resolve) {
+      chrome.storage.sync.get(null, items => {
+        resolve(items);
+      });
+    }).then(storage.joinText),
+  
+  splitText: text => {
+    let splittedText = {};
+    storage.splitKeys().forEach(i => {
+      splittedText['text' + i] = text.substring(i * storage.QUOTA_BYTES_PER_ITEM, (i + 1) * storage.QUOTA_BYTES_PER_ITEM);
+    });
+    return splittedText;
+  },
+  
+  joinText: splittedText => storage.splitKeys().map(i => splittedText['text' + i]).filter(t => t).join(""),
+  
+  splitKeys: () => utils.range(storage.QUOTA_BYTES / storage.QUOTA_BYTES_PER_ITEM),
+  
+  // temporarily set to 5k until split on accurate byte count
+  QUOTA_BYTES_PER_ITEM: 5000, // chrome.storage.sync.QUOTA_BYTES_PER_ITEM is 8,192
+  
+  // temporarily set to 50k until split on accurate byte count
+  QUOTA_BYTES: 50000 // chrome.storage.sync.QUOTA_BYTES is 102,400
 }
 
 const setTitle = (title) => {
   document.title = `${title} - BlinkNote`;
 }
 
-window.addEventListener('load', (e) => {
-  init();
-});
+const init = () => {
+  document.title = 'BlinkNote';
+  editorElement = document.querySelector('#c');
+  errorElement = document.querySelector("#error");
+  
+  const editorStyleChanges = () => { 
+    // increase font size of lines beginning in hashtag, animatedly
+    ([].slice.call(editorElement.querySelectorAll('*')).map(e => [e, e.innerText]).map(([e, text]) => [e, text.match(/^(#+)\s.*$/)]).filter(([e, m]) => m).map(([e, m]) => [e, m[1]]).forEach(([e,m]) => {e.style.transition = "font-size 0.5s cubic-bezier(0, 1.03, 1, 1) 0s"; e.style.fontSize = (30 - (3*m.length)) || 3}));
+    
+    // put error on the screen if the total text length is greater than the limit
+    // the limit should be 100k but this is until we can get an accurate byte count
+    errorElement.style.display = editor.getText().length > 50000 ? 'block' : 'none';
+  };
+  editorStyleChanges();
+  editorElement.addEventListener('input', editorStyleChanges);
+  
+  storage.getText().then(editor.setText)
+  
+  // save changes
+  editorElement.addEventListener('keyup', (e) => { 
+    setTitle('Saving'); 
+    clearTimeout(timeout);
+    timeout = setTimeout(() => { 
+      storage.setText(editor.getText())
+    }, 500);
+  });
+  
+  // propogate changes from other tabs to this one
+  chrome.storage.onChanged.addListener(async (changes, namespace) => {
+    if (namespace === 'sync') {
+      if (editor.getText() !== await storage.getText()) {
+        editor.setText(await storage.getText())
+        setTitle('Updated');
+      }
+    }
+  });
+}
+
+window.addEventListener('load', init);
