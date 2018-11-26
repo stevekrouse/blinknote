@@ -4,7 +4,7 @@ let splitKeys = [0,1,2,3,4,5,6,7,8,9,10,11,12];
 let timeout; 
 chrome.storage.sync.get(null, items => {
   // Rejoin text that we split up below
-  let text = splitKeys.map(i => items['text' + i]).filter(t => t).join()
+  let text = splitKeys.map(i => items['text' + i]).filter(t => t).join("")
   editor.innerHTML = text;
 })
 editor.addEventListener('keyup', (e) => { 
