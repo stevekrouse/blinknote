@@ -45,7 +45,8 @@ const setText = (text) => {
   // https://developer.chrome.com/apps/storage#type-StorageArea
   let texts = {};
   splitKeys.forEach(i => {
-    texts['text' + i] = text.substring(i * 8000, (i + 1) *8000);
+    // temporarily set limit to 5000 because I can't get an accurate byte count
+    texts['text' + i] = text.substring(i * 5000, (i + 1) * 5000);
   });
   error.style.display = text.length > 100000 ? 'block' : 'none';
   chrome.storage.sync.set(texts, e => {
@@ -60,7 +61,7 @@ const setText = (text) => {
 
 const displayText = (items) => {
   // Rejoin text that we split up below
-  let text = splitKeys.map(i => items['text' + i]).filter(t => t).join();
+  let text = splitKeys.map(i => items['text' + i]).filter(t => t).join("");
   editor.innerHTML = text;
 }
 
@@ -71,14 +72,3 @@ const setTitle = (title) => {
 window.addEventListener('load', (e) => {
   init();
 });
-
-
-// TODOS
-//
-// extract debounce / throttle as own function
-// show how many characters are left
-// checkbox when synced
-// better favicons / icons
-// publish to chrome store
-// when changes come from another tab, cursor gets reset to beginning of div
-// broadcast: put on my website / tweet about it / put on HN / put on PH
