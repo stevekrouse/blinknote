@@ -14,6 +14,7 @@ const init = () => {
   });
   editor.addEventListener('keyup', (e) => { 
     setTitle('Saving'); 
+    // increase font size of lines beginning in hashtag, animatedly
     ([].slice.call(editor.querySelectorAll('*')).map(e => [e, e.innerText]).map(([e, text]) => [e, text.match(/^(#+)\s.*$/)]).filter(([e, m]) => m).map(([e, m]) => [e, m[1]]).forEach(([e,m]) => {e.style.transition = "font-size 0.5s cubic-bezier(0, 1.03, 1, 1) 0s"; e.style.fontSize = (30 - (3*m.length)) || 3}));
     clearTimeout(timeout);
     timeout = setTimeout(() => { 
@@ -62,7 +63,9 @@ const setText = (text) => {
 const displayText = (items) => {
   // Rejoin text that we split up below
   let text = splitKeys.map(i => items['text' + i]).filter(t => t).join("");
-  editor.innerHTML = text;
+  if (text != editor.innerHTML) {
+    editor.innerHTML = text;
+  }
 }
 
 const setTitle = (title) => {
