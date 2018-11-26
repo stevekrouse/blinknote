@@ -68,9 +68,6 @@ new tab chrome extension - fastest way to take a note that'll stick around
 
 ### Considerations
 
-* 3rd party markdown editor
-  * https://simplemde.com/
-  * https://www.slatejs.org/#/markdown-preview
 * maybe not in every new tab but it's own keyboard shortcut
 * give up on content editable and have a saner object model because it's just crazy?!
 
