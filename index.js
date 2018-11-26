@@ -19,10 +19,10 @@ const storage = {
     splittedText = storage.splitText(text);
     chrome.storage.sync.set(splittedText, () => {
       if (chrome.runtime.lastError) {
-        title.set('Error');
+        title.setState('Error');
         console.log(chrome.runtime.lastError)
       } else {
-        title.set('Saved');
+        title.setState('Saved');
       }
     }); 
   },
@@ -55,12 +55,19 @@ const storage = {
 
 const title =  {
   // state: 'Saved', 'Saving', 'Error'
-  set: state => {
+  setState: state => {
     title.state = state; 
-    document.title = `${title.state} - BlinkNote (${editor.getText().length +"/" + storage.QUOTA_BYTES})`;  
+    title.update();
   },
+  setCharacterLength: length => {
+    title.charLength = length
+    title.update();
+  },
+  update: () => {
+    let chars = title.charLength ? `(${title.charLength +"/" + storage.QUOTA_BYTES})` : ''
+    document.title = `${title.state} - BlinkNote ${chars}`;  
+  }
 }
-
 
 const init = () => {
   editorElement = document.querySelector('#c');
@@ -77,26 +84,32 @@ const init = () => {
   editorStyleChanges();
   editorElement.addEventListener('input', editorStyleChanges);
   
-  storage.getText()
-    .then(editor.setText)
-    .then(() => title.set('Saved'))
+  title.setState('Saved')
+  storage.getText().then(text => {
+    editor.setText(text)
+    title.setCharacterLength(text.length)
+  })
   
-  
-  // save changes
+  // save changes and update title char text length
   editorElement.addEventListener('keyup', (e) => { 
-    title.set('Saving'); 
+    title.setState('Saving'); 
     clearTimeout(timeout);
-    timeout = setTimeout(() => { 
-      storage.setText(editor.getText())
+    timeout = setTimeout(() => {
+      let editorText = editor.getText();
+      title.setCharacterLength(editorText.length);
+      storage.setText(editorText)
     }, 500);
   });
   
   // propogate changes from other tabs to this one
   chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'sync') {
-      if (editor.getText() !== await storage.getText()) {
-        editor.setText(await storage.getText())
-        title.set('Saved');
+      let editorText = editor.getText()
+      let storageText = await storage.getText()
+      if (editorText !== storageText) {
+        title.setCharacterLength(storageText.length);
+        editor.setText(storageText)
+        title.setState('Saved');
       }
     }
   });
