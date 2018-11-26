@@ -16,7 +16,7 @@ const editor = {
 
 const storage = {
   setText: text => {
-    splittedText = storage.splitText(text);
+    let splittedText = storage.splitText(text);
     chrome.storage.sync.set(splittedText, () => {
       if (chrome.runtime.lastError) {
         title.setState('Error');
