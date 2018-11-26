@@ -1,6 +1,9 @@
 let editorElement;
 let errorElement;
 
+// add map which automatically turns NodeList to array
+NodeList.prototype.map = function(f) { return [].slice.call(this).map(f) }
+
 const utils = {
   range: n => [...Array(n)].map((_, i) => i),
   debounce: (func, time) => {
@@ -103,21 +106,41 @@ const init = () => {
     }
   }
   
+  const markdownStyle = () => {
+    // make titles big
+    editorElement.querySelectorAll('*')
+      .map(e => [e, e.innerText])
+      .map(([e, text]) => [e, text.match(/^(#+)\s.*$/)])
+      .filter(([e, m]) => m)
+      .map(([e, m]) => [e, m[1]])
+      .forEach(([e,m]) => {
+        e.style.fontSize = (50 - (5*m.length)) || 3; 
+        e.style.marginBottom = 2 + "px";
+        e.style.marginTop = 2 + "px";
+      })
+      
+    // make non-titles regular sized
+    editorElement.querySelectorAll('*')
+      .map(e => [e, e.innerText])
+      .map(([e, text]) => [e, text.match(/^(#+)\s.*$/)])
+      .filter(([e, m]) => !m)
+      .forEach(([e, m]) => e.style.fontSize = '16px')
+  }
+  
   const editorStyleChanges = () => { 
-    // increase font size of lines beginning in hashtag, animatedly
-    ([].slice.call(editorElement.querySelectorAll('*')).map(e => [e, e.innerText]).map(([e, text]) => [e, text.match(/^(#+)\s.*$/)]).filter(([e, m]) => m).map(([e, m]) => [e, m[1]]).forEach(([e,m]) => {e.style.transition = "font-size 0.5s cubic-bezier(0, 1.03, 1, 1) 0s"; e.style.fontSize = (30 - (3*m.length)) || 3}));
-    
     // put error on the screen if the total text length is greater than the limit
     // the limit should be 100k but this is until we can get an accurate byte count
     errorElement.style.display = editor.getText().length > 50000 ? 'block' : 'none';
+    
+    markdownStyle();
   };
-  editorStyleChanges();
   editorElement.addEventListener('input', editorStyleChanges);
   
   title.setState('Saved')
   storage.getText().then(text => {
     editor.setText(text)
     title.setCharacterLength(text.length)
+    editorStyleChanges();
   })
   
   // save changes and update title char text length
