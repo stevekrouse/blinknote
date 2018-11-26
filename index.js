@@ -73,6 +73,28 @@ const init = () => {
   editorElement = document.querySelector('#c');
   errorElement = document.querySelector("#error");
   
+  // mock chrome.storage.sync to work with localStorage if not embedded in chrome extension
+  if (!chrome.storage) {
+    chrome.storage = {
+      sync: {
+        get: (keys, callback) => {
+          callback(localStorage)
+        },
+        set: (obj, callback) => {
+          Object.keys(obj).forEach(key => localStorage.setItem(key, obj[key]))
+          callback();
+        },
+        QUOTA_BYTES_PER_ITEM: 8192,
+        QUOTA_BYTES: 102400
+      },
+      onChanged: {
+        addListener: (func) => {
+          window.addEventListener("storage", () => func(null, 'sync'))
+        }
+      }
+    }
+  }
+  
   const editorStyleChanges = () => { 
     // increase font size of lines beginning in hashtag, animatedly
     ([].slice.call(editorElement.querySelectorAll('*')).map(e => [e, e.innerText]).map(([e, text]) => [e, text.match(/^(#+)\s.*$/)]).filter(([e, m]) => m).map(([e, m]) => [e, m[1]]).forEach(([e,m]) => {e.style.transition = "font-size 0.5s cubic-bezier(0, 1.03, 1, 1) 0s"; e.style.fontSize = (30 - (3*m.length)) || 3}));
