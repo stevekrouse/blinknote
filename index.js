@@ -57,7 +57,7 @@ const title =  {
   // state: 'Saved', 'Saving', 'Error'
   set: state => {
     title.state = state; 
-    document.title = `${title.state} - BlinkNote`;  
+    document.title = `${title.state} - BlinkNote (${editor.getText().length +"/" + storage.QUOTA_BYTES})`;  
   },
 }
 
