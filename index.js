@@ -1,9 +1,17 @@
 let editorElement;
 let errorElement;
-let timeout; 
 
 const utils = {
-  range: n => [...Array(n)].map((_, i) => i)
+  range: n => [...Array(n)].map((_, i) => i),
+  debounce: (func, time) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        func(...args)
+      }, time)
+    }
+  }
 }
 
 const editor = {
@@ -114,15 +122,15 @@ const init = () => {
   
   // save changes and update title char text length
   editorElement.addEventListener('keyup', (e) => { 
-    title.setState('Saving'); 
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      let editorText = editor.getText();
-      title.setCharacterLength(editorText.length);
-      storage.setText(editorText)
-    }, 500);
+    title.setState('Saving');
+    editorChangeHandler();
   });
-  
+  const editorChangeHandler = utils.debounce(() => {
+    let editorText = editor.getText();
+    title.setCharacterLength(editorText.length);
+    storage.setText(editorText)
+  });
+
   // propogate changes from other tabs to this one
   chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'sync') {
