@@ -84,6 +84,8 @@ const init = () => {
   editorElement = document.querySelector('#c');
   errorElement = document.querySelector("#error");
   
+  editorElement.focus();
+  
   // mock chrome.storage.sync to work with localStorage if not embedded in chrome extension
   if (!chrome.storage) {
     chrome.storage = {
