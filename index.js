@@ -28,7 +28,7 @@ const editor = {
 const storage = {
   setText: text => {
     let splittedText = storage.splitText(text);
-    chrome.storage.sync.set(splittedText, () => {
+    chrome.storage.largeSync.set(splittedText, () => {
       if (chrome.runtime.lastError) {
         title.setState('Error');
         console.log(chrome.runtime.lastError)
@@ -40,28 +40,22 @@ const storage = {
   
   getText: () => 
     new Promise(function(resolve) {
-      chrome.storage.sync.get(null, items => {
+      chrome.storage.largeSync.get(null, items => {
         resolve(items);
       });
     }).then(storage.joinText),
   
   splitText: text => {
-    let splittedText = {};
-    storage.splitKeys().forEach(i => {
-      splittedText['text' + i] = text.substring(i * storage.QUOTA_BYTES_PER_ITEM, (i + 1) * storage.QUOTA_BYTES_PER_ITEM);
-    });
-    return splittedText;
+    return {text};
   },
   
-  joinText: splittedText => storage.splitKeys().map(i => splittedText['text' + i]).filter(t => t).join(""),
+  joinText: splittedText => splittedText.text,
   
-  splitKeys: () => utils.range(storage.QUOTA_BYTES / storage.QUOTA_BYTES_PER_ITEM),
+  QUOTA_BYTES: 102400,
   
-  // temporarily set to 5k until split on accurate byte count
-  QUOTA_BYTES_PER_ITEM: 5000, // chrome.storage.sync.QUOTA_BYTES_PER_ITEM is 8,192
-  
-  // temporarily set to 50k until split on accurate byte count
-  QUOTA_BYTES: 50000 // chrome.storage.sync.QUOTA_BYTES is 102,400
+  getBytesInUse: () => new Promise(function(resolve) {
+    chrome.storage.sync.getBytesInUse(null, resolve)
+  })
 }
 
 const title =  {
@@ -70,8 +64,8 @@ const title =  {
     title.state = state; 
     title.update();
   },
-  setCharacterLength: length => {
-    title.charLength = length
+  setCharacterLength: async length => {
+    title.charLength = await storage.getBytesInUse();
     title.update();
   },
   update: () => {
@@ -89,14 +83,20 @@ const init = () => {
     chrome.storage = {
       sync: {
         get: (keys, callback) => {
-          callback(localStorage)
+          if (keys === null ){ keys = Object.keys(localStorage) }
+          let ret = {}
+          keys.forEach(key => ret[key] = JSON.parse(localStorage[key]))
+          callback(ret)
         },
         set: (obj, callback) => {
-          Object.keys(obj).forEach(key => localStorage.setItem(key, obj[key]))
+          Object.keys(obj).forEach(key => localStorage.setItem(key, JSON.stringify(obj[key])))
           callback();
         },
         QUOTA_BYTES_PER_ITEM: 8192,
-        QUOTA_BYTES: 102400
+        QUOTA_BYTES: 102400,
+        clear: () => localStorage.clear(),
+        getBytesInUse: () => JSON.stringify(localStorage).length,
+        remove: keys => keys.forEach(key => localStorage.removeItem(key))
       },
       onChanged: {
         addListener: (func) => {
@@ -105,6 +105,7 @@ const init = () => {
       }
     }
   }
+  window.largeSync();
   
   const markdownStyle = () => {
     // make titles big
@@ -128,18 +129,17 @@ const init = () => {
   }
   
   const editorStyleChanges = () => { 
-    // put error on the screen if the total text length is greater than the limit
-    // the limit should be 100k but this is until we can get an accurate byte count
-    errorElement.style.display = editor.getText().length > 50000 ? 'block' : 'none';
+    errorElement.style.display = title.charLength > storage.QUOTA_BYTES ? 'block' : 'none';
     
     markdownStyle();
   };
   editorElement.addEventListener('input', editorStyleChanges);
   
+  title.setCharacterLength()
+  
   title.setState('Saved')
   storage.getText().then(text => {
     editor.setText(text)
-    title.setCharacterLength(text.length)
     editorStyleChanges();
   })
   
@@ -149,18 +149,16 @@ const init = () => {
     editorChangeHandler();
   });
   const editorChangeHandler = utils.debounce(() => {
-    let editorText = editor.getText();
-    title.setCharacterLength(editorText.length);
-    storage.setText(editorText)
+    title.setCharacterLength();
+    storage.setText(editor.getText())
   });
 
   // propogate changes from other tabs to this one
   chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'sync') {
-      let editorText = editor.getText()
       let storageText = await storage.getText()
-      if (editorText !== storageText) {
-        title.setCharacterLength(storageText.length);
+      if (editor.getText() !== storageText) {
+        title.setCharacterLength();
         editor.setText(storageText)
         title.setState('Saved');
       }
