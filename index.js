@@ -18,6 +18,9 @@ const utils = {
 }
 
 const editor = {
+  id: Math.random(),
+  lastChangeTime: 0,
+  
   getText: () => editorElement.innerHTML,
   
   setText: text => {
@@ -27,8 +30,7 @@ const editor = {
 
 const storage = {
   setText: text => {
-    let splittedText = storage.splitText(text);
-    chrome.storage.largeSync.set(splittedText, () => {
+    chrome.storage.largeSync.set(storage.textToObject(text), () => {
       if (chrome.runtime.lastError) {
         title.setState('Error');
         console.log(chrome.runtime.lastError)
@@ -40,13 +42,20 @@ const storage = {
   
   getText: () => 
     new Promise(function(resolve) {
-      chrome.storage.largeSync.get(null, items => {
-        resolve(items);
-      });
+      chrome.storage.largeSync.get(null, resolve)
     }).then(storage.joinText),
   
-  splitText: text => {
-    return {text};
+  getLastChangeMetaData: () => new Promise(function(resolve) {
+    chrome.storage.largeSync.get(['lastChangeEditor', 'lastChangeTime'], resolve);
+  }),
+  
+  textToObject: text => {
+    editor.lastChangeTime = Date.now()
+    return {
+      text,
+      lastChangeEditor: editor.id,
+      lastChangeTime: editor.lastChangeTime
+    };
   },
   
   joinText: splittedText => splittedText.text,
@@ -59,7 +68,7 @@ const storage = {
 }
 
 const title =  {
-  // state: 'Saved', 'Saving', 'Error'
+  // state: 'Saved', 'Saving', 'Error'  
   setState: state => {
     title.state = state; 
     title.update();
@@ -146,6 +155,7 @@ const init = () => {
   // save changes and update title char text length
   editorElement.addEventListener('keyup', (e) => { 
     title.setState('Saving');
+    editor.lastChange = Date.now()
     editorChangeHandler();
   });
   const editorChangeHandler = utils.debounce(() => {
@@ -156,10 +166,10 @@ const init = () => {
   // propogate changes from other tabs to this one
   chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'sync') {
-      let storageText = await storage.getText()
-      if (editor.getText() !== storageText) {
+      let { lastChangeEditor, lastChangeTime } = await storage.getLastChangeMetaData()
+      if (editor.id !== lastChangeEditor && lastChangeTime > editor.lastChangeTime) {
         title.setCharacterLength();
-        editor.setText(storageText)
+        editor.setText(await storage.getText())
         title.setState('Saved');
       }
     }
