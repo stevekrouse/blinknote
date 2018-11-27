@@ -107,10 +107,12 @@ const init = () => {
   }
   
   const markdownStyle = () => {
-    // make titles big
-    editorElement.querySelectorAll('*')
+    const headerSearch = editorElement.querySelectorAll('*')
       .map(e => [e, e.innerText])
       .map(([e, text]) => [e, text.match(/^(#+)\s.*$/)])
+      
+    // make headers big
+    headerSearch
       .filter(([e, m]) => m)
       .map(([e, m]) => [e, m[1]])
       .forEach(([e,m]) => {
@@ -119,12 +121,46 @@ const init = () => {
         e.style.marginTop = 2 + "px";
       })
       
-    // make non-titles regular sized
-    editorElement.querySelectorAll('*')
-      .map(e => [e, e.innerText])
-      .map(([e, text]) => [e, text.match(/^(#+)\s.*$/)])
+    // make non-headers regular sized
+    headerSearch
       .filter(([e, m]) => !m)
       .forEach(([e, m]) => e.style.fontSize = '16px')
+      
+    let linkRegex = /\[(.*)\]\((.*)\)/g
+    // linkify new links
+    editorElement.querySelectorAll('*:not(.blinknote-link)')
+      .map(e => [e, e.innerHTML])
+      .filter(([e, t]) => !e.innerHTML.includes('blinknote-link'))
+      .map(([e, text]) => [e, /\[(.*)\]\((.*)\)/g.exec(text)])
+      .filter(([e, m]) => m)
+      .forEach(([e, m]) => {
+        e.innerHTML = e.innerHTML.replace(linkRegex, '<span class="blinknote-link"><span class="left-bracket">[</span><a onclick="window.open(this.href, \'_blank\')" href="$2">$1</a><span class="right-bracket">]</span>($2)</span>')
+      })
+      // todo put cursor at the end of this somehow...
+    
+    // update existing links  
+    const blinknoteLinks = () => editorElement.querySelectorAll('.blinknote-link')
+      .map(e => [e, e.innerText])
+      .map(([e, text]) => [e, /\[(.*)\]\((.*)\)/g.exec(text)])
+    
+    // unlinkify links no longer
+    blinknoteLinks()
+      .filter(([e, m]) => !m)
+      .forEach(([e, m]) => {
+        e.innerHTML = e.innerText
+        e.classList.remove('blinknote-link')
+      })
+    
+    // update text and target of exsiting links 
+    blinknoteLinks()
+      .filter(m => m)
+      .forEach(([e, m]) => {
+        let a = e.querySelector("a")
+        a.href = m[2];
+        a.innerText = m[1];
+        e.querySelector(".left-bracket").innerText = '['
+        e.querySelector(".right-bracket").innerText = ']'
+      })
   }
   
   const editorStyleChanges = () => { 
