@@ -2,7 +2,9 @@ let editorElement;
 let errorElement;
 
 // add map which automatically turns NodeList to array
-NodeList.prototype.map = function(f) { return [].slice.call(this).map(f) }
+NodeList.prototype.map = function(f) {
+  return [].slice.call(this).map(f);
+};
 
 const utils = {
   range: n => [...Array(n)].map((_, i) => i),
@@ -11,66 +13,71 @@ const utils = {
     return (...args) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
-        func(...args)
-      }, time)
-    }
+        func(...args);
+      }, time);
+    };
   }
-}
+};
 
 const editor = {
   id: Math.random(),
   lastChangeTime: 0,
-  
+
   getText: () => editorElement.innerHTML,
-  
+
   setText: text => {
     editorElement.innerHTML = text;
   }
-}
+};
 
 const storage = {
   setText: text => {
     chrome.storage.largeSync.set(storage.textToObject(text), () => {
       if (chrome.runtime.lastError) {
-        title.setState('Error');
-        console.log(chrome.runtime.lastError)
+        title.setState("Error");
+        console.log(chrome.runtime.lastError);
       } else {
-        title.setState('Saved');
+        title.setState("Saved");
       }
-    }); 
+    });
   },
-  
-  getText: () => 
+
+  getText: () =>
     new Promise(function(resolve) {
-      chrome.storage.largeSync.get(null, resolve)
+      chrome.storage.largeSync.get(null, resolve);
     }).then(storage.joinText),
-  
-  getLastChangeMetaData: () => new Promise(function(resolve) {
-    chrome.storage.largeSync.get(['lastChangeEditor', 'lastChangeTime'], resolve);
-  }),
-  
+
+  getLastChangeMetaData: () =>
+    new Promise(function(resolve) {
+      chrome.storage.largeSync.get(
+        ["lastChangeEditor", "lastChangeTime"],
+        resolve
+      );
+    }),
+
   textToObject: text => {
-    editor.lastChangeTime = Date.now()
+    editor.lastChangeTime = Date.now();
     return {
       text,
       lastChangeEditor: editor.id,
       lastChangeTime: editor.lastChangeTime
     };
   },
-  
-  joinText: splittedText => splittedText.text,
-  
-  QUOTA_BYTES: 102400,
-  
-  getBytesInUse: () => new Promise(function(resolve) {
-    chrome.storage.sync.getBytesInUse(null, resolve)
-  })
-}
 
-const title =  {
-  // state: 'Saved', 'Saving', 'Error'  
+  joinText: splittedText => splittedText.text,
+
+  QUOTA_BYTES: 102400,
+
+  getBytesInUse: () =>
+    new Promise(function(resolve) {
+      chrome.storage.sync.getBytesInUse(null, resolve);
+    })
+};
+
+const title = {
+  // state: 'Saved', 'Saving', 'Error'
   setState: state => {
-    title.state = state; 
+    title.state = state;
     title.update();
   },
   setCharacterLength: async length => {
@@ -78,27 +85,33 @@ const title =  {
     title.update();
   },
   update: () => {
-    let chars = title.charLength ? `(${title.charLength +"/" + storage.QUOTA_BYTES})` : ''
-    document.title = `${title.state} - BlinkNote ${chars}`;  
+    let chars = title.charLength
+      ? `(${title.charLength + "/" + storage.QUOTA_BYTES})`
+      : "";
+    document.title = `${title.state} - BlinkNote ${chars}`;
   }
-}
+};
 
 const init = () => {
-  editorElement = document.querySelector('#c');
+  editorElement = document.querySelector("#c");
   errorElement = document.querySelector("#error");
-  
+
   // mock chrome.storage.sync to work with localStorage if not embedded in chrome extension
   if (!chrome.storage) {
     chrome.storage = {
       sync: {
         get: (keys, callback) => {
-          if (keys === null ){ keys = Object.keys(localStorage) }
-          let ret = {}
-          keys.forEach(key => ret[key] = JSON.parse(localStorage[key]))
-          callback(ret)
+          if (keys === null) {
+            keys = Object.keys(localStorage);
+          }
+          let ret = {};
+          keys.forEach(key => (ret[key] = JSON.parse(localStorage[key])));
+          callback(ret);
         },
         set: (obj, callback) => {
-          Object.keys(obj).forEach(key => localStorage.setItem(key, JSON.stringify(obj[key])))
+          Object.keys(obj).forEach(key =>
+            localStorage.setItem(key, JSON.stringify(obj[key]))
+          );
           callback();
         },
         QUOTA_BYTES_PER_ITEM: 8192,
@@ -108,77 +121,86 @@ const init = () => {
         remove: keys => keys.forEach(key => localStorage.removeItem(key))
       },
       onChanged: {
-        addListener: (func) => {
-          window.addEventListener("storage", () => func(null, 'sync'))
+        addListener: func => {
+          window.addEventListener("storage", () => func(null, "sync"));
         }
       }
-    }
+    };
   }
   window.largeSync();
-  
+
   const markdownStyle = () => {
     // make titles big
-    editorElement.querySelectorAll('*')
+    editorElement
+      .querySelectorAll("*")
       .map(e => [e, e.innerText])
       .map(([e, text]) => [e, text.match(/^(#+)\s.*$/)])
       .filter(([e, m]) => m)
       .map(([e, m]) => [e, m[1]])
-      .forEach(([e,m]) => {
-        e.style.fontSize = (50 - (5*m.length)) || 3; 
+      .forEach(([e, m]) => {
+        e.style.fontSize = 50 - 5 * m.length || 3;
         e.style.marginBottom = 2 + "px";
         e.style.marginTop = 2 + "px";
-      })
-      
+      });
+
     // make non-titles regular sized
-    editorElement.querySelectorAll('*')
+    editorElement
+      .querySelectorAll("*")
       .map(e => [e, e.innerText])
       .map(([e, text]) => [e, text.match(/^(#+)\s.*$/)])
       .filter(([e, m]) => !m)
-      .forEach(([e, m]) => e.style.fontSize = '16px')
-  }
-  
-  const editorStyleChanges = () => { 
-    errorElement.style.display = title.charLength > storage.QUOTA_BYTES ? 'block' : 'none';
-    
+      .forEach(([e, m]) => (e.style.fontSize = "16px"));
+  };
+
+  const editorStyleChanges = () => {
+    errorElement.style.display =
+      title.charLength > storage.QUOTA_BYTES ? "block" : "none";
+
     markdownStyle();
   };
-  editorElement.addEventListener('input', editorStyleChanges);
-  
-  title.setCharacterLength()
-  
-  title.setState('Saved')
+  editorElement.addEventListener("input", editorStyleChanges);
+
+  title.setCharacterLength();
+
+  title.setState("Saved");
   storage.getText().then(text => {
-    editor.setText(text)
+    editor.setText(text);
     editorStyleChanges();
-  })
-  
+  });
+
   // save changes and update title char text length
-  editorElement.addEventListener('keyup', (e) => { 
-    title.setState('Saving');
-    editor.lastChange = Date.now()
+  editorElement.addEventListener("keyup", e => {
+    title.setState("Saving");
+    editor.lastChange = Date.now();
     editorChangeHandler();
   });
   const editorChangeHandler = utils.debounce(() => {
     title.setCharacterLength();
-    storage.setText(editor.getText())
+    storage.setText(editor.getText());
   });
 
   // propogate changes from other tabs to this one
   chrome.storage.onChanged.addListener(async (changes, namespace) => {
-    if (namespace === 'sync') {
-      let { lastChangeEditor, lastChangeTime } = await storage.getLastChangeMetaData()
-      if (editor.id !== lastChangeEditor && lastChangeTime > editor.lastChangeTime) {
+    if (namespace === "sync") {
+      let {
+        lastChangeEditor,
+        lastChangeTime
+      } = await storage.getLastChangeMetaData();
+      if (
+        editor.id !== lastChangeEditor &&
+        lastChangeTime > editor.lastChangeTime
+      ) {
         title.setCharacterLength();
-        editor.setText(await storage.getText())
-        title.setState('Saved');
+        editor.setText(await storage.getText());
+        title.setState("Saved");
       }
     }
   });
-  
+
   // warns you about leaving before save
   window.onbeforeunload = function() {
-    return title.state === 'Saved' ? null : true;
-  }
-}
+    return title.state === "Saved" ? null : true;
+  };
+};
 
-window.addEventListener('load', init);
+window.addEventListener("load", init);
