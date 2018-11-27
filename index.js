@@ -143,8 +143,28 @@ const init = () => {
     editorStyleChanges();
   })
   
+  editorElement.addEventListener('keydown', e => {
+    if (e.code === "Enter") {
+      let newlineElement = window.getSelection().focusNode;
+      let previousLineElement = newlineElement.parentNode;
+      let match = /^(\s*)(\*|\-)/.exec(previousLineElement.innerText)
+      if (match) {
+        setTimeout(() => {
+          let beginningText = match[1] + match[2] + " ";
+          window.getSelection().focusNode.innerHTML = beginningText + window.getSelection().focusNode.innerHTML
+          var range = document.createRange();
+          var sel = window.getSelection();
+          range.setStart(sel.focusNode, (beginningText).length );
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }, 0);
+      }
+    }
+  })
+  
   // save changes and update title char text length
-  editorElement.addEventListener('keyup', (e) => { 
+  editorElement.addEventListener('keyup', e => { 
     title.setState('Saving');
     editorChangeHandler();
   });
