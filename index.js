@@ -33,9 +33,11 @@ const storage = {
     chrome.storage.largeSync.set(storage.textToObject(text), () => {
       if (chrome.runtime.lastError) {
         title.setState('Error');
+        favicon.setState('red');
         console.log(chrome.runtime.lastError)
       } else {
         title.setState('Saved');
+        favicon.setState('green');
       }
     }); 
   },
@@ -80,6 +82,20 @@ const title =  {
   update: () => {
     let chars = title.charLength ? `(${title.charLength +"/" + storage.QUOTA_BYTES})` : ''
     document.title = `${title.state} - BlinkNote ${chars}`;  
+  }
+}
+
+const favicon = {
+  // state: 'green', 'red', 'default'  
+  setState: state => {
+    if (state !== favicon.state) {
+      favicon.state = state; 
+      favicon.update(`images/blinknote-${favicon.state}-icon48.png`);
+    }
+  },
+  update: (href) => {
+    const faviconEl = document.querySelector('#favicon');
+    faviconEl.setAttribute('href', href);
   }
 }
 
@@ -148,7 +164,8 @@ const init = () => {
   
   title.setCharacterLength()
   
-  title.setState('Saved')
+  title.setState('Saved');
+  favicon.setState('green');
   storage.getText().then(text => {
     editor.setText(text)
     editorStyleChanges();
@@ -157,6 +174,7 @@ const init = () => {
   // save changes and update title char text length
   editorElement.addEventListener('keyup', (e) => { 
     title.setState('Saving');
+    favicon.setState('default');
     editor.lastChange = Date.now()
     editorChangeHandler();
   });
@@ -173,6 +191,7 @@ const init = () => {
         title.setCharacterLength();
         editor.setText(await storage.getText())
         title.setState('Saved');
+        favicon.setState('green');
       }
     }
   });
