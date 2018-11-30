@@ -94,14 +94,17 @@ const favicon = {
     }
   },
   update: (href) => {
-    const faviconEl = document.querySelector('#favicon');
-    faviconEl.setAttribute('href', href);
+    favicon.el.setAttribute('href', href);
+  },
+  cacheEl: () => {
+    favicon.el = document.querySelector('#favicon');
   }
 }
 
 const init = () => {
   editorElement = document.querySelector('#c');
   errorElement = document.querySelector("#error");
+  favicon.cacheEl();
   
   editorElement.focus();
   
