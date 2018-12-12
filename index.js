@@ -95,16 +95,13 @@ const favicon = {
   },
   update: (href) => {
     favicon.el.setAttribute('href', href);
-  },
-  cacheEl: () => {
-    favicon.el = document.querySelector('#favicon');
   }
 }
 
 const init = () => {
   editorElement = document.querySelector('#c');
   errorElement = document.querySelector("#error");
-  favicon.cacheEl();
+  favicon.el = document.querySelector('#favicon');
   
   editorElement.focus();
   
